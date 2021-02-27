@@ -8,33 +8,15 @@
 import Foundation
 
 struct User: Decodable {
-    let login: String
-    let avatarUrl: String?
-    let url: String?
+    let name: String
+    let imageUrl: String?
+    let singleUrl: String?
     
     enum CodingKeys: String, CodingKey {
-        case login
-        case avatarUrl = "avatar_url"
-        case url
+        case name = "login"
+        case imageUrl = "avatar_url"
+        case singleUrl = "url"
     }
 }
 
-extension User: Equatable {
-    
-}
-
-
-
-struct Menu {
-    var login: String
-    var avatarUrl: String?
-    var publicRepos: Int
-}
-
-
-extension Menu {
-    static func fromMenuItems(item: User, repos: Int) -> Menu {
-        return Menu(login: item.login, avatarUrl: item.avatarUrl, publicRepos: repos)
-    }
-}
 

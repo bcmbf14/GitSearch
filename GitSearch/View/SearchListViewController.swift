@@ -12,121 +12,68 @@ import UIKit
 
 class SearchListViewController: UIViewController {
     
-    
     let viewModel = UserListViewModel()
-    
     var disposeBag = DisposeBag()
     
-    @IBOutlet weak var searchBar: UISearchBar!
-    
-    @IBOutlet weak var tableView: UITableView!
-    @IBOutlet weak var emptyLabel: UILabel!
-    
+    private var paging = 1
+   
     override func viewDidLoad() {
         super.viewDidLoad()
         
         searchBar.autocapitalizationType = .none
-        
-        
-        
         tableView.dataSource = nil
-        //        tableView.delegate = nil
+        
+        setupBindings()
+    }
+    
+    // MARK: - UI Binding
+
+    func setupBindings() {
         
         viewModel.userObservable
             .asDriver(onErrorJustReturn: [])
-            .drive(tableView.rx.items(cellIdentifier: UserListTableViewCell.reuseIdentifier, cellType: UserListTableViewCell.self)) { index, item, cell in
-                
-//                item//menu
-                
+            .drive(tableView.rx.items(cellIdentifier: UserListTableViewCell.reuseIdentifier, cellType: UserListTableViewCell.self)) { _, item, cell in
                 cell.setData(item)
             }
             .disposed(by: disposeBag)
         
         
         searchBar.rx.text.orEmpty
+            .map{($0, self.paging)}
             .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
-            .asDriver(onErrorJustReturn: "")
+            .asDriver(onErrorJustReturn: ("", 1))
             .drive(viewModel.searchBarObservable)
             .disposed(by: disposeBag)
-       
         
-        viewModel.userObservable
-            .asDriver(onErrorJustReturn: [])
-//            .debug()
-            .map{$0.count > 0}
-//            .startWith(false)
-            .drive(emptyLabel.rx.isHidden)
+        
+        
+        let usersCount = viewModel.userObservable.map{$0.count - 1}
+        let prefetchRows = tableView.rx.prefetchRows.map{$0.last?.row ?? 0}
+        
+        Observable.combineLatest(usersCount, prefetchRows,
+                                 resultSelector: { $0 == $1 })
+            .filter{$0 == true}
+            .do(onNext:{ _ in self.paging += 1})
+            .observe(on: MainScheduler.instance)
+            .map{_ in (self.searchBar.text ?? "", self.paging)}
+            .observe(on: ConcurrentDispatchQueueScheduler(qos: .default))
+            .bind(to: viewModel.searchBarObservable)
             .disposed(by: disposeBag)
         
         
-        
-        let b = tableView.contentSize.height + tableView.frame.size.height + 100
-        
-        
-        tableView.rx.contentOffset
-            .map { $0.y - b }
-//            .debug()
-            .subscribe(onNext: { s in
-                print(s)
-            })
+        tableView.rx.modelSelected(User.self)
+            .map{URL(string:"https://github.com/\($0.name)")}
+            .do(onNext: viewModel.openURL)
+            .subscribe()
+            .disposed(by: disposeBag)
             
-        
-        
-//        func scrollViewDidScroll(_ scrollView: UIScrollView) {
-//          let height: CGFloat = scrollView.frame.size.height
-        
-        
-//          let contentYOffset: CGFloat = scrollView.contentOffset.y
-//          let scrollViewHeight: CGFloat = scrollView.contentSize.height
-        
-        
-//          let distanceFromBottom: CGFloat = scrollViewHeight - contentYOffset
-//
-//          if distanceFromBottom < height {
-//            self.addData()
-//          }
-//        }
-       
-            
-        
-//        let refreshControl = UIRefreshControl()
-//
-//        tableView.refreshControl = refreshControl
-//
-//        refreshControl.rx.controlEvent(.valueChanged)
-//            .debug()
-//            .disposed(by: disposeBag)
-        
-        
-        
-//        viewModel.userObservable
-////            .asDriver(onErrorJustReturn: [])
-//            .map { $0.count > 0 }
-//            .observe(on: MainScheduler.instance)
-//            .subscribe(onNext: { b in
-//
-//                self.tableView.refreshControl?.isHidden = b
-//            })
-        
-        
-            
-            
-//            .drive(tableView.refreshControl?.rx.isHidden)
-
-        
-        
     }
     
     
+    // MARK: - InterfaceBuilder Links
     
-    //    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-    //        guard let id = segue.identifier,
-    //              id == "DetailViewController",
-    //              let detailVC = segue.destination as? DetailViewController,
-    //              let data = sender as? Member else {
-    //            return
-    //        }
-    //        detailVC.data = data
-    //    }
+    @IBOutlet weak var searchBar: UISearchBar!
+    @IBOutlet weak var tableView: UITableView!
+    
 }
 

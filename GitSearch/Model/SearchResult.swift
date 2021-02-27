@@ -18,3 +18,6 @@ struct SearchResult: Decodable {
         case items
     }
 }
+
+
+

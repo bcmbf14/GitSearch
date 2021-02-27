@@ -14,32 +14,24 @@ class UserListTableViewCell: UITableViewCell {
     
     static let reuseIdentifier = "UserListTableViewCell"
     
-    @IBOutlet var avatar: UIImageView!
-    @IBOutlet var name: UILabel!
-    @IBOutlet var job: UILabel!
-    @IBOutlet var age: UILabel!
+    @IBOutlet var profileImageView: UIImageView!
+    @IBOutlet var nameLabel: UILabel!
+    @IBOutlet var reposCountLabel: UILabel!
     
     func setData(_ data: User) {
-        loadImage(from: data.avatarUrl ?? "")
-            .observe(on: MainScheduler.instance)
-            .bind(to: avatar.rx.image)
+        loadImage(from: data.imageUrl ?? "")
+            .asDriver(onErrorJustReturn: UIImage(systemName: "person.fill"))
+            .drive(profileImageView.rx.image)
             .disposed(by: disposeBag)
         
-        print(data.url)
-        
-        loadRepos(from: data.url ?? "")
-            .map{"\($0!.publicRepos)"}
-            .observe(on: MainScheduler.instance)
-            .bind(to: job.rx.text)
+        loadRepos(from: data.singleUrl ?? "")
+            .asDriver(onErrorJustReturn: .init(publicRepos: -1))
+            .map{"Numbers of Repos : \($0!.publicRepos)"}
+            .drive(reposCountLabel.rx.text)
             .disposed(by: disposeBag)
         
-        
-            
-        
-        avatar.image = nil
-        name.text = data.login
-//        job.text = data.login
-        age.text = "(\(data.login))"
+        profileImageView.image = nil
+        nameLabel.text = data.name
     }
     
     var disposeBag = DisposeBag()
@@ -48,7 +40,7 @@ class UserListTableViewCell: UITableViewCell {
         return Observable.create { emitter in
             guard let url = URL(string: url) ?? nil else {
                 print("Invalid URL")
-                emitter.onNext(UIImage(systemName: "trash"))
+                emitter.onNext(UIImage(systemName: "person.fill"))
                 return Disposables.create()
             }
             
