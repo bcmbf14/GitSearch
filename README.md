@@ -16,7 +16,7 @@ Github API와 RxSwift, RxCocoa, MVVM 패턴을 기반으로 간단한 검색 앱
 URLSession, Codable, Storyboard, UIKit, RxSwift, RxCocoa, Driver, Bind
 
 ## Architecture
-MVVM 
+MVVM, Reactive Programming
 
 ## API 
 https://developer.github.com/v3/search/#search-users      
